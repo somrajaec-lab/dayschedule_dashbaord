@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DaySchedule Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<style>
+:root{--bg:#f0f2f5;--card:#fff;--hdr:#0f172a;--txt:#1e293b;--sub:#64748b;--acc:#6366f1;--green:#10b981;--blue:#3b82f6;--amber:#f59e0b;--red:#ef4444;--purple:#8b5cf6;--r:12px;--g:16px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+
+/* ── Setup ── */
+#setup{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.sc{background:var(--card);border-radius:var(--r);padding:40px;max-width:460px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.1)}
+.sc h1{font-size:22px;font-weight:700;margin-bottom:6px}
+.sc p{font-size:14px;color:var(--sub);margin-bottom:28px}
+.fl{margin-bottom:16px}
+.fl label{display:block;font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.fl input{width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;color:var(--txt);transition:border-color .2s}
+.fl input:focus{outline:none;border-color:var(--acc)}
+.hint{font-size:12px;color:var(--sub);margin-top:4px}
+.hint a{color:var(--acc);text-decoration:none}
+.hint a:hover{text-decoration:underline}
+.btn{width:100%;padding:12px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px;transition:background .2s}
+.btn:hover{background:#4f46e5}
+.btn:disabled{background:#a5b4fc;cursor:not-allowed}
+.err{color:var(--red);font-size:13px;margin-top:10px;display:none}
+.forget-btn{display:block;background:none;border:none;color:#94a3b8;font-size:12px;cursor:pointer;text-decoration:underline;margin:10px auto 0}
+
+/* ── Loading ── */
+#loader{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);align-items:center;justify-content:center;z-index:999}
+.lbox{background:#fff;border-radius:var(--r);padding:32px 40px;text-align:center}
+.spin{width:40px;height:40px;border:4px solid #e2e8f0;border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lstep{font-size:12px;color:var(--sub);margin-top:6px;min-height:18px}
+
+/* ── Dashboard ── */
+#dash{display:none}
+.wrap{max-width:1400px;margin:0 auto;padding:var(--g)}
+.hdr{background:var(--hdr);color:#fff;padding:16px 22px;border-radius:var(--r);margin-bottom:var(--g);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.hdr h1{font-size:17px;font-weight:700}
+.hdr .sub{font-size:12px;color:rgba(255,255,255,.45);margin-top:2px}
+.hdr-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ts{font-size:12px;color:rgba(255,255,255,.4)}
+.rbtn{padding:6px 13px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:6px;font-size:13px;cursor:pointer}
+.rbtn:hover{background:rgba(255,255,255,.2)}
+.kbtn{padding:6px 13px;background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.12);border-radius:6px;font-size:12px;cursor:pointer}
+.kbtn:hover{color:#fff}
+.errb{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:var(--g);display:none}
+.sec{font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding-left:2px}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--g);margin-bottom:var(--g)}
+.kc{background:var(--card);border-radius:var(--r);padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);border-top:3px solid transparent;position:relative;overflow:hidden}
+.kc::after{content:attr(data-icon);position:absolute;right:14px;top:12px;font-size:26px;opacity:.13}
+.kc.c1{border-top-color:var(--blue)} .kc.c2{border-top-color:var(--green)}
+.kc.c3{border-top-color:var(--amber)} .kc.c4{border-top-color:var(--purple)}
+.kl{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;font-weight:600}
+.kv{font-size:30px;font-weight:800;line-height:1;margin-bottom:3px}
+.ks{font-size:11px;color:var(--sub)}
+.bdg{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;margin-top:4px}
+.bdg.c1{background:#dbeafe;color:#1d4ed8} .bdg.c2{background:#d1fae5;color:#065f46}
+.bdg.c3{background:#fef3c7;color:#92400e} .bdg.c4{background:#ede9fe;color:#5b21b6}
+
+/* Charts */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--g);margin-bottom:var(--g)}
+.cgrid.full{grid-template-columns:1fr}
+.cc{background:var(--card);border-radius:var(--r);padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.cc h3{font-size:13px;font-weight:600;margin-bottom:2px}
+.cc .csub{font-size:11px;color:var(--sub);margin-bottom:14px}
+.cc canvas{max-height:260px}
+
+/* Agent table */
+.tc{background:var(--card);border-radius:var(--r);padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow-x:auto;margin-bottom:var(--g)}
+.tc h3{font-size:13px;font-weight:600;margin-bottom:2px}
+.tc .csub{font-size:11px;color:var(--sub);margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;padding:9px 12px;border-bottom:2px solid #f1f5f9;color:var(--sub);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{color:var(--txt)}
+tbody td{padding:10px 12px;border-bottom:1px solid #f8fafc}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#f8fafc}
+.rb{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:10px;font-weight:700}
+.r1{background:#fef3c7;color:#92400e} .r2{background:#f1f5f9;color:#374151}
+.r3{background:#fce7f3;color:#9d174d} .ro{background:#f1f5f9;color:#94a3b8}
+.ub{display:flex;align-items:center;gap:6px}
+.ubg{flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;min-width:60px}
+.ubf{height:100%;border-radius:3px}
+.ut{font-size:11px;font-weight:700;min-width:34px}
+.tag-hi{color:var(--green);font-size:11px;font-weight:600}
+.tag-lo{color:var(--red);font-size:11px;font-weight:600}
+.tag-n{color:var(--sub);font-size:11px}
+
+/* Next 3 days */
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--g);margin-bottom:var(--g)}
+.sdc{background:var(--card);border-radius:var(--r);padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.sdl{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.sdd{font-size:13px;font-weight:600;margin-bottom:12px}
+.sn{font-size:34px;font-weight:800;color:var(--purple);line-height:1}
+.sl{font-size:11px;color:var(--sub);margin-top:2px}
+.sar{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid #f8fafc}
+.sar:last-child{border-bottom:none}
+.san{color:var(--sub)} .sac{font-weight:700}
+
+/* Footer */
+footer{text-align:center;padding:14px;font-size:11px;color:var(--sub)}
+
+@media(max-width:900px){.cgrid{grid-template-columns:1fr}.sg{grid-template-columns:1fr}}
+@media(max-width:600px){.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="sc">
+    <div style="font-size:30px;margin-bottom:8px">📅</div>
+    <h1>DaySchedule Dashboard</h1>
+    <p>Enter your API key once — it's saved in your browser and never asked again.</p>
+    <div class="fl">
+      <label>Bearer API Token</label>
+      <input type="password" id="key" placeholder="Paste your token here…"/>
+      <div class="hint">Get it from <a href="https://app.dayschedule.com/settings/apikeys" target="_blank">Settings → API Keys</a></div>
+    </div>
+    <button class="btn" id="go" onclick="start()">Load Dashboard →</button>
+    <button class="forget-btn" onclick="forgetKey()">Clear saved key</button>
+    <div class="err" id="serr"></div>
+  </div>
+</div>
+
+<!-- LOADER -->
+<div id="loader" style="display:none">
+  <div class="lbox">
+    <div class="spin"></div>
+    <div style="font-size:14px;color:#64748b">Fetching your data…</div>
+    <div class="lstep" id="lstep"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dash">
+<div class="wrap">
+
+  <div class="hdr">
+    <div>
+      <h1>📅 DaySchedule Analytics</h1>
+      <div class="sub" id="hsub">Loading…</div>
+    </div>
+    <div class="hdr-right">
+      <span class="ts" id="ts"></span>
+      <button class="rbtn" onclick="refresh()">⟳ Refresh</button>
+      <button class="kbtn" onclick="switchKey()">Change Key</button>
+    </div>
+  </div>
+
+  <div class="errb" id="errb"></div>
+
+  <!-- KPIs -->
+  <div class="sec">Session Summary — All Time</div>
+  <div class="kpis">
+    <div class="kc c1" data-icon="📋"><div class="kl">Confirmed</div><div class="kv" id="kConfirmed">—</div><span class="bdg c1">CONFIRMED</span></div>
+    <div class="kc c2" data-icon="✅"><div class="kl">Completed</div><div class="kv" id="kCompleted">—</div><span class="bdg c2">COMPLETED</span></div>
+    <div class="kc c3" data-icon="🚫"><div class="kl">No-Show</div><div class="kv" id="kNoshow">—</div><span class="bdg c3">NO SHOW</span></div>
+    <div class="kc c4" data-icon="📊"><div class="kl">Avg Utilization (7d)</div><div class="kv" id="kUtil">—</div><div class="ks" id="kUtilSub">rolling 7-day avg</div><span class="bdg c4">UTILIZATION</span></div>
+  </div>
+
+  <!-- Utilization bar chart -->
+  <div class="sec">7-Day Slot Utilization</div>
+  <div class="cgrid full" style="margin-bottom:var(--g)">
+    <div class="cc"><h3>Daily Slots — Booked vs Open (Last 7 Days)</h3><div class="csub">Stacked per day</div><canvas id="cUtil"></canvas></div>
+  </div>
+
+  <!-- Donut + Agent util -->
+  <div class="cgrid" style="margin-bottom:var(--g)">
+    <div class="cc"><h3>Session Status Breakdown</h3><div class="csub">All-time distribution</div><canvas id="cDonut"></canvas></div>
+    <div class="cc"><h3>Agent Slot Utilization</h3><div class="csub">Last 7 days — highest to lowest</div><canvas id="cAgentUtil"></canvas></div>
+  </div>
+
+  <!-- Agent table -->
+  <div class="sec">Agent Performance — Last 7 Days</div>
+  <div class="tc">
+    <h3>Agent-Level Details</h3>
+    <div class="csub">Click any column header to sort</div>
+    <table>
+      <thead><tr>
+        <th>#</th>
+        <th onclick="sortBy('name')">Agent</th>
+        <th onclick="sortBy('totalSlots')">Total Slots</th>
+        <th onclick="sortBy('booked')">Booked</th>
+        <th onclick="sortBy('util')">Utilization</th>
+        <th onclick="sortBy('completed')">Completed</th>
+        <th onclick="sortBy('noshow')">No-Show</th>
+        <th>Rank</th>
+      </tr></thead>
+      <tbody id="atbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Next 3 days -->
+  <div class="sec">Open Slots — Next 3 Days</div>
+  <div class="sg" id="sg"></div>
+
+  <footer>DaySchedule Analytics · refreshed <span id="ft"></span></footer>
+</div>
+</div>
+
+<script>
+// ── constants
+const BASE    = 'https://api.dayschedule.com/v1';
+const LS_KEY  = 'ds_tok';
+const LS_TZ   = 'ds_tz';
+let TOKEN = '', TZ = 'Asia/Kolkata';
+let agents = [], sortCol = 'util', sortDir = 'desc';
+let charts = {};
+
+// ── auto-load on page ready
+document.addEventListener('DOMContentLoaded', () => {
+  const t = localStorage.getItem(LS_KEY);
+  if (t) {
+    TOKEN = t;
+    TZ = localStorage.getItem(LS_TZ) || 'Asia/Kolkata';
+    run();
+  }
+});
+
+function forgetKey() {
+  localStorage.removeItem(LS_KEY);
+  localStorage.removeItem(LS_TZ);
+  document.getElementById('key').value = '';
+  alert('Key cleared.');
+}
+
+async function start() {
+  TOKEN = document.getElementById('key').value.trim();
+  if (!TOKEN) { showSetupErr('Please paste your API token.'); return; }
+  document.getElementById('go').disabled = true;
+  document.getElementById('serr').style.display = 'none';
+  await run();
+  document.getElementById('go').disabled = false;
+}
+
+async function run() {
+  showLoader(true);
+  try {
+    await load();
+    localStorage.setItem(LS_KEY, TOKEN);
+    localStorage.setItem(LS_TZ, TZ);
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('dash').style.display  = 'block';
+  } catch(e) {
+    showSetupErr('Error: ' + e.message);
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function refresh() {
+  showLoader(true);
+  document.getElementById('errb').style.display = 'none';
+  try { await load(); }
+  catch(e) { showBanner(e.message); }
+  finally { showLoader(false); }
+}
+
+function switchKey() {
+  document.getElementById('dash').style.display  = 'none';
+  document.getElementById('setup').style.display = 'flex';
+  Object.values(charts).forEach(c => c?.destroy());
+  charts = {};
+}
+
+// ── API
+function hdrs(extra={}) {
+  return { 'Authorization': 'Bearer ' + TOKEN, 'Accept': 'application/json', ...extra };
+}
+
+async function get(path, params={}) {
+  const u = new URL(BASE + path);
+  Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, v));
+  const r = await fetch(u.toString(), { headers: hdrs() });
+  if (!r.ok) throw new Error(path + ' → ' + r.status + ' ' + r.statusText);
+  return r.json();
+}
+
+async function post(path, body={}) {
+  const r = await fetch(BASE + path, {
+    method: 'POST',
+    headers: hdrs({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error('POST ' + path + ' → ' + r.status);
+  return r.json();
+}
+
+async function allBookings(status, from, to) {
+  let all=[], offset=0, limit=200;
+  while(true) {
+    const p = { limit, offset };
+    if (status) p.status = status;
+    if (from)   p.from = from;
+    if (to)     p.to   = to;
+    const d = await get('/bookings', p);
+    const rows = Array.isArray(d) ? d : (d.data || d.results || d.bookings || []);
+    all = all.concat(rows);
+    if (rows.length < limit) break;
+    offset += limit;
+  }
+  return all;
+}
+
+async function getSlots(resourceId, date) {
+  try {
+    const d = await post('/availability', { resource_id: resourceId, date, timezone: TZ });
+    const s = Array.isArray(d) ? d : (d.slots || d.times || d.available || []);
+    return s.length;
+  } catch { return 0; }
+}
+
+// ── helpers
+function d2s(d)  { return d.toISOString().split('T')[0]; }
+function addD(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function fdate(d){ return d.toLocaleDateString('en-IN',{weekday:'short',month:'short',day:'numeric'}); }
+function pct(a,b){ return b===0 ? 0 : Math.round(a/b*100); }
+function step(s) { document.getElementById('lstep').textContent = s; }
+function bdate(b){ return (b.date||b.start_time||b.scheduled_at||b.created_at||'').substring(0,10); }
+function agentOf(b){
+  return b.host?.name || b.host?.email ||
+         b.agent?.name || b.agent?.email ||
+         b.organizer?.name || b.organizer?.email ||
+         b.assigned_to?.name || b.assigned_to ||
+         (b.hosts?.[0]?.name || b.hosts?.[0]?.email) || 'Unknown';
+}
+
+// ── main load
+async function load() {
+  const today = new Date();
+  const p7s   = d2s(addD(today,-7));
+  const tod   = d2s(today);
+  const days  = Array.from({length:7},(_,i)=>addD(today,-6+i));
+
+  step('Fetching confirmed sessions…');
+  const confirmed = await allBookings('confirmed', null, null);
+
+  step('Fetching completed sessions…');
+  const completed = await allBookings('completed', null, null);
+
+  step('Fetching no-shows…');
+  let noshow = [];
+  for (const s of ['no_show','noshow','no-show','missed']) {
+    try { noshow = await allBookings(s, null, null); if (noshow.length) break; } catch {}
+  }
+
+  step('Fetching last 7 days bookings…');
+  let recent = [];
+  try { recent = await allBookings(null, p7s, tod); }
+  catch { recent = [...confirmed,...completed,...noshow].filter(b => bdate(b) >= p7s); }
+
+  step('Fetching resources…');
+  let resources = [];
+  try {
+    const rd = await get('/resources', { limit: 200 });
+    resources = Array.isArray(rd) ? rd : (rd.data || rd.results || rd.resources || []);
+  } catch {}
+
+  // per-day booking counts
+  const byDay = {}, slotDay = {};
+  days.forEach(d => { byDay[d2s(d)]=0; slotDay[d2s(d)]=0; });
+  recent.forEach(b => { const k=bdate(b); if(k in byDay) byDay[k]++; });
+
+  // availability per day (sample up to 5 resources)
+  const sample = resources.slice(0,5);
+  if (sample.length) {
+    step('Checking availability slots…');
+    for (const day of days) {
+      const ds = d2s(day);
+      for (const res of sample) {
+        const rid = res.id || res._id;
+        if (rid) slotDay[ds] += await getSlots(rid, ds);
+      }
+    }
+  } else {
+    days.forEach(d => { slotDay[d2s(d)] = Math.max(byDay[d2s(d)]*2, 6); });
+  }
+
+  // agent map
+  const amap = {};
+  recent.forEach(b => {
+    const n = agentOf(b);
+    if (!amap[n]) amap[n] = {name:n, booked:0, completed:0, noshow:0, totalSlots:0};
+    amap[n].booked++;
+    const st = (b.status||'').toLowerCase();
+    if (st.includes('complet')) amap[n].completed++;
+    if (st.includes('no') && st.includes('show')) amap[n].noshow++;
+  });
+  // total slots per agent via availability
+  for (const res of sample) {
+    const aName = res.host?.name || res.host?.email || res.name || 'Unknown';
+    if (amap[aName]) {
+      for (const day of days) {
+        const rid = res.id || res._id;
+        if (rid) amap[aName].totalSlots += await getSlots(rid, d2s(day));
+      }
+    }
+  }
+  Object.values(amap).forEach(a => {
+    if (!a.totalSlots && a.booked) a.totalSlots = Math.round(a.booked / 0.6);
+    a.util = pct(a.booked, a.totalSlots);
+  });
+  agents = Object.values(amap);
+
+  // next 3 days slots
+  step('Fetching next 3 days…');
+  const next3 = [];
+  for (let i=1;i<=3;i++) {
+    const day = addD(today, i), ds = d2s(day);
+    const aSlots = {};
+    for (const res of sample) {
+      const rid = res.id || res._id;
+      const aName = res.host?.name || res.host?.email || res.name || 'Agent';
+      if (rid) aSlots[aName] = (aSlots[aName]||0) + await getSlots(rid, ds);
+    }
+    next3.push({ date:day, total:Object.values(aSlots).reduce((s,v)=>s+v,0), aSlots });
+  }
+
+  // ── render
+  const allCnt   = confirmed.length;
+  const compCnt  = completed.length;
+  const nsCnt    = noshow.length;
+  const totSlots = Object.values(slotDay).reduce((s,v)=>s+v,0);
+  const totBook  = Object.values(byDay).reduce((s,v)=>s+v,0);
+
+  document.getElementById('kConfirmed').textContent = allCnt.toLocaleString();
+  document.getElementById('kCompleted').textContent = compCnt.toLocaleString();
+  document.getElementById('kNoshow').textContent    = nsCnt.toLocaleString();
+  document.getElementById('kUtil').textContent      = pct(totBook,totSlots) + '%';
+  document.getElementById('kUtilSub').textContent   = totBook + ' booked of ' + totSlots + ' slots';
+
+  renderUtil(days, slotDay, byDay);
+  renderDonut(allCnt, compCnt, nsCnt);
+  renderAgentUtil(agents);
+  renderTable();
+  renderNext3(next3);
+
+  const now = new Date().toLocaleTimeString();
+  document.getElementById('ts').textContent = 'Updated: ' + now;
+  document.getElementById('ft').textContent = now;
+  document.getElementById('hsub').textContent = resources.length + ' agent(s) · ' + now;
+}
+
+// ── charts
+function renderUtil(days, slotDay, byDay) {
+  const labels = days.map(fdate);
+  const booked = days.map(d => byDay[d2s(d)]);
+  const open   = days.map((d,i) => Math.max(0, slotDay[d2s(d)] - booked[i]));
+  const ctx = document.getElementById('cUtil').getContext('2d');
+  if (charts.util) charts.util.destroy();
+  charts.util = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label:'Booked', data:booked, backgroundColor:'#6366f1cc', borderColor:'#6366f1', borderWidth:1, borderRadius:4, stack:'s' },
+      { label:'Open',   data:open,   backgroundColor:'#e0e7ff',   borderColor:'#c7d2fe', borderWidth:1, borderRadius:4, stack:'s' }
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{position:'top',labels:{usePointStyle:true,padding:14}},
+        tooltip:{ callbacks:{ afterBody(items){
+          const i=items[0]?.dataIndex; if(i===undefined) return '';
+          return ['Util: '+pct(booked[i], slotDay[d2s(days[i])])+'%'];
+        }}}},
+      scales:{ x:{stacked:true,grid:{display:false}}, y:{stacked:true,beginAtZero:true} }
+    }
+  });
+}
+
+function renderDonut(conf, comp, ns) {
+  const ctx = document.getElementById('cDonut').getContext('2d');
+  if (charts.donut) charts.donut.destroy();
+  charts.donut = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels:['Confirmed','Completed','No-Show'],
+      datasets:[{ data:[conf,comp,ns],
+        backgroundColor:['#3b82f6cc','#10b981cc','#f59e0bcc'],
+        borderColor:['#3b82f6','#10b981','#f59e0b'], borderWidth:2 }]},
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins:{ legend:{position:'right',labels:{usePointStyle:true,padding:12}},
+        tooltip:{ callbacks:{ label(c){
+          const t=c.dataset.data.reduce((a,b)=>a+b,0);
+          return ' '+c.label+': '+c.parsed+' ('+pct(c.parsed,t)+'%)';
+        }}}}}
+  });
+}
+
+function renderAgentUtil(ag) {
+  const sorted = [...ag].sort((a,b)=>b.util-a.util);
+  const pal = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
+  const ctx = document.getElementById('cAgentUtil').getContext('2d');
+  if (charts.au) charts.au.destroy();
+  charts.au = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:sorted.map(a=>a.name.split(' ').slice(0,2).join(' ')),
+      datasets:[{ label:'Utilization %',
+        data:sorted.map(a=>a.util),
+        backgroundColor:sorted.map((_,i)=>pal[i%pal.length]+'bb'),
+        borderColor:sorted.map((_,i)=>pal[i%pal.length]),
+        borderWidth:1, borderRadius:4 }]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label(c){ return ' '+c.parsed.x+'%'; } }}},
+      scales:{ x:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}, y:{grid:{display:false}} }
+    }
+  });
+}
+
+window.sortBy = function(col) {
+  if (sortCol===col) sortDir = sortDir==='desc'?'asc':'desc';
+  else { sortCol=col; sortDir='desc'; }
+  renderTable();
+};
+
+function renderTable() {
+  const sorted = [...agents].sort((a,b) => {
+    const av=a[sortCol], bv=b[sortCol];
+    if (typeof av==='number') return sortDir==='desc' ? bv-av : av-bv;
+    return sortDir==='desc' ? (''+(bv)).localeCompare(''+av) : (''+av).localeCompare(''+bv);
+  });
+  const max = Math.max(...sorted.map(a=>a.util),1);
+  document.getElementById('atbody').innerHTML = sorted.map((a,i) => {
+    const rc = i===0?'r1':i===1?'r2':i===2?'r3':'ro';
+    const uc = a.util>=70?'#10b981':a.util>=40?'#6366f1':'#ef4444';
+    const tag = i===0
+      ? '<span class="tag-hi">▲ Highest</span>'
+      : i===sorted.length-1 && sorted.length>1
+        ? '<span class="tag-lo">▼ Lowest</span>'
+        : '<span class="tag-n">—</span>';
+    return `<tr>
+      <td><span class="rb ${rc}">${i+1}</span></td>
+      <td><strong>${a.name}</strong></td>
+      <td>${a.totalSlots}</td><td>${a.booked}</td>
+      <td><div class="ub"><div class="ubg"><div class="ubf" style="width:${a.util}%;background:${uc}"></div></div><span class="ut" style="color:${uc}">${a.util}%</span></div></td>
+      <td>${a.completed}</td><td>${a.noshow}</td><td>${tag}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderNext3(next3) {
+  const labels = ['Tomorrow','Day +2','Day +3'];
+  document.getElementById('sg').innerHTML = next3.map((d,i) => {
+    const rows = Object.entries(d.aSlots).sort((a,b)=>b[1]-a[1]).slice(0,5)
+      .map(([n,c])=>`<div class="sar"><span class="san">${n}</span><span class="sac">${c}</span></div>`).join('');
+    return `<div class="sdc">
+      <div class="sdl">${labels[i]}</div>
+      <div class="sdd">${fdate(d.date)}</div>
+      <div class="sn">${d.total}</div>
+      <div class="sl">open slots</div>
+      <div style="margin-top:10px">${rows || '<div class="sl" style="margin-top:6px;color:#94a3b8">No data</div>'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── ui utils
+function showLoader(v) { document.getElementById('loader').style.display = v?'flex':'none'; }
+function showSetupErr(m) { const e=document.getElementById('serr'); e.textContent=m; e.style.display='block'; }
+function showBanner(m)   { const b=document.getElementById('errb'); b.textContent='⚠ '+m; b.style.display='block'; }
+</script>
+</body>
+</html>
